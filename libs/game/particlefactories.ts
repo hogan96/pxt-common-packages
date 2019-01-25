@@ -385,7 +385,8 @@ namespace particles {
             this.im = anchor.image ? anchor.image.clone() 
                 : img`1 1 1
                       1 1 1`.clone();
-            anchor.setImage(this.im);
+            if (anchor.setImage)
+                (anchor as Sprite).setImage(this.im);
             this.midx = Fx.leftShift(Fx8(this.im.width), 1);
             this.midy = Fx.leftShift(Fx8(this.im.height), 1);
             // count non-transparent pixels
@@ -420,8 +421,8 @@ namespace particles {
             const x = Fx.idiv(xy, this.im.width);
             const y = Fx.sub(xy, Fx.mul(x, Fx8(this.im.height)));
 
-            const c = this.im.getPixel(x, y);
-            this.im.setPixel(x, y, 0); // clear pixel
+            const c = this.im.getPixel(Fx.toInt(x), Fx.toInt(y));
+            this.im.setPixel(Fx.toInt(x), Fx.toInt(y), 0); // clear pixel
             p._x = Fx.add(p._x, x);
             p._y = Fx.add(p._y, y);
             p.color = c;
