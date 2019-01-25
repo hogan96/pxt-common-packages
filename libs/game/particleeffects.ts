@@ -289,6 +289,13 @@ namespace effects {
         return src;
     });
 
+    //% fixedInstance whenUsed block="vaporize"
+    export const vaporize = new ParticleEffect(60, 1250, function (anchor: particles.ParticleAnchor, particlesPerSecond: number) {
+        const factory = new particles.DesintegrateFactory(anchor);
+        const src = new particles.ParticleSource(anchor, particlesPerSecond, factory);
+        return src;
+    });
+
     //% fixedInstance whenUsed block="blizzard"
     export const blizzard = new ScreenEffect(15, 50, 3000, function (anchor: particles.ParticleAnchor, particlesPerSecond: number) {
         class SnowFactory extends particles.ShapeFactory {

@@ -279,7 +279,7 @@ namespace particles {
         protected galois: Math.FastRandom;
         protected minRadius: number;
         protected maxRadius: number;
-    
+
         constructor(radius: number) {
             super();
             initTrig();
@@ -372,9 +372,74 @@ namespace particles {
         constructor(public color: number, public count: number) { }
     }
 
+    export class DesintegrateFactory extends AreaFactory {
+        private pixels: Buffer;
+        private pi: number;
+        private im: Image;
+        private midx: Fx8;
+        private midy: Fx8;
+
+        constructor(anchor: ParticleAnchor) {
+            super(anchor.width, anchor.height, 300, 700);
+
+            this.im = anchor.image ? anchor.image.clone() 
+                : img`1 1 1
+                      1 1 1`.clone();
+            anchor.setImage(this.im);
+            this.midx = Fx.leftShift(Fx8(this.im.width), 1);
+            this.midy = Fx.leftShift(Fx8(this.im.height), 1);
+            // count non-transparent pixels
+            let n = 0;
+            for (let x = 0; x < this.im.width; ++x)
+                for (let y = 0; y < this.im.height; ++y)
+                    if (this.im.getPixel(x, y)) n++;
+            const n1 = n - 1;
+            // index pixels 
+            this.pixels = control.createBuffer(n);
+            let k = 0;
+            for (let x = 0; x < this.im.width; ++x)
+                for (let y = 0; y < this.im.height; ++y)
+                    this.pixels[k++] = this.im.getPixel(x, y);
+            // shuffle
+            for (let i = 0; i < n; ++i) {
+                const left = this.galois.randomRange(0, n1);
+                const right = this.galois.randomRange(0, n1);
+                const temp = this.pixels[left];
+                this.pixels[left] = this.pixels[right];
+                this.pixels[right] = temp;
+            }
+            //initialize counter
+            this.pi = 0;
+        }
+
+        createParticle(anchor: ParticleAnchor) {
+            if (this.pi == this.pixels.length) return undefined;
+
+            const p = super.createParticle(anchor);
+            const xy = Fx8(this.pixels[this.pi++]);
+            const x = Fx.idiv(xy, this.im.width);
+            const y = Fx.sub(xy, Fx.mul(x, Fx8(this.im.height)));
+
+            const c = this.im.getPixel(x, y);
+            this.im.setPixel(x, y, 0); // clear pixel
+            p._x = Fx.add(p._x, x);
+            p._y = Fx.add(p._y, y);
+            p.color = c;
+
+            p.vx = Fx.sub(x, this.midx);
+            p.vy = Fx.sub(x, this.midy);
+
+            return p;
+        }
+
+        drawParticle(p: Particle, x: Fx8, y: Fx8) {
+            screen.setPixel(Fx.toInt(x), Fx.toInt(y), p.color);
+        }
+    }
+
     export class AshFactory extends AreaFactory {
         private colors: ColorCount[];
-        
+
         constructor(anchor: ParticleAnchor, updateImage?: boolean, percentKept: number = 20) {
             super(anchor.width ? anchor.width : 8, anchor.height ? anchor.height >> 1 : 8, 300, 700);
 
@@ -428,7 +493,7 @@ namespace particles {
             p.color = choice.color;
 
             p._y = Fx.iadd(this.galois.randomRange(this.yRange >> 1, this.yRange), p._y);
-            p.vx = anchor.vx ? Fx.neg(Fx8(anchor.vx >> 2)): Fx.zeroFx8;
+            p.vx = anchor.vx ? Fx.neg(Fx8(anchor.vx >> 2)) : Fx.zeroFx8;
             p.vy = Fx8(this.galois.randomRange(-150, -50));
 
             return p;
@@ -446,7 +511,7 @@ namespace particles {
         yRange: number;
         protected galois: Math.FastRandom;
         protected states: Image[];
-    
+
         constructor(sprite: ParticleAnchor, minLifespan: number, maxLifespan: number) {
             super();
             initTrig();
